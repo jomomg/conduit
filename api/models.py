@@ -1,5 +1,7 @@
+import uuid
 from django.db import models
 from django.contrib.auth.models import User
+from django.template.defaultfilters import slugify
 
 
 class Profile(models.Model):
@@ -18,6 +20,12 @@ class Article(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True, null=True)
+
+    def save(self, *args, **kwargs):
+        if not self.slug:
+            unique_str = str(uuid.uuid4())[:8]
+            self.slug = slugify(f'{self.title}-{unique_str}')
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return f'Article: {self.title}'
