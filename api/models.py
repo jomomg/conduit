@@ -41,9 +41,9 @@ class Comment(models.Model):
         return f'Comment: {self.body}'
 
 
-class UserFollows(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
-    followed_user = models.ForeignKey(User, on_delete=models.CASCADE)
+class Follows(models.Model):
+    initiator = models.ForeignKey(User, on_delete=models.CASCADE, related_name='following')
+    recipient = models.ForeignKey(User, on_delete=models.CASCADE, related_name='followed_by')
     created_at = models.DateTimeField(auto_now_add=True)
 
 
