@@ -15,6 +15,3 @@ def test_user_registration_is_successful(api_client):
     response = api_client.post(url, USER_PAYLOAD, format='json')
     assert response.status_code == 201
     assert 'password' not in response.json()
-
-
-
