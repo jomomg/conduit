@@ -12,7 +12,7 @@ from sqlalchemy.orm import (
 from slugify import slugify
 
 from .database import engine, SessionMaker
-from .utils import slugify_title
+from .utils import slugify_title, generate_b64_uuid
 
 
 def utcnow():
@@ -26,10 +26,10 @@ class Base(DeclarativeBase):
 class User(Base):
     __tablename__ = "users"
 
-    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    id: Mapped[str] = mapped_column(primary_key=True, default=generate_b64_uuid)
     email: Mapped[str]
-    password: Mapped[str]
-
+    password_hash: Mapped[str]
+    username: Mapped[str]
     profile: Mapped["Profile"] = relationship(
         back_populates="user", cascade="all, delete-orphan", uselist=False
     )
@@ -63,9 +63,9 @@ profile_follows = Table(
 class Profile(Base):
     __tablename__ = "profiles"
 
-    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    id: Mapped[str] = mapped_column(primary_key=True, default=generate_b64_uuid)
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), unique=True)
-    username: Mapped[str]
+
     bio: Mapped[Optional[str]]
     image: Mapped[Optional[str]]
 
@@ -96,7 +96,7 @@ class Profile(Base):
 class Article(Base):
     __tablename__ = "articles"
 
-    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    id: Mapped[str] = mapped_column(primary_key=True, default=generate_b64_uuid)
     title: Mapped[str] = mapped_column(String(300))
     slug: Mapped[str]
     profile_id: Mapped[int] = mapped_column(ForeignKey("profiles.id"))
@@ -125,7 +125,7 @@ class Article(Base):
 class Tag(Base):
     __tablename__ = "tags"
 
-    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    id: Mapped[str] = mapped_column(primary_key=True, default=generate_b64_uuid)
     name: Mapped[str] = mapped_column(unique=True)
     articles: Mapped[list["Article"]] = relationship(
         secondary=article_tags, back_populates="tags"
@@ -135,7 +135,7 @@ class Tag(Base):
 class Comment(Base):
     __tablename__ = "comments"
 
-    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    id: Mapped[str] = mapped_column(primary_key=True, default=generate_b64_uuid)
     profile_id: Mapped[int] = mapped_column(ForeignKey("profiles.id"))
     article_id: Mapped[int] = mapped_column(ForeignKey("articles.id"))
     body: Mapped[str]
