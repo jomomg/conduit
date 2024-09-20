@@ -14,12 +14,16 @@ def test_user_profile_rlnshp(db_session, test_user, test_profile):
 
 
 def test_profile_following(db_session, test_profile):
-    user1 = User(email="user1ew@email.com", password="testpassword")
-    user2 = User(email="user2@email.com", password="testpassword")
+    user1 = User(
+        email="user1ew@email.com", password_hash="testpassword", username="user1"
+    )
+    user2 = User(
+        email="user2@email.com", password_hash="testpassword", username="user2"
+    )
     db_session.add_all([user1, user2])
     db_session.commit()
-    profile1 = Profile(username="profile1", user_id=user1.id)
-    profile2 = Profile(username="profile2", user_id=user2.id)
+    profile1 = Profile(user_id=user1.id)
+    profile2 = Profile(user_id=user2.id)
     db_session.add_all([profile1, profile2])
     db_session.commit()
     test_profile.following.append(profile1)

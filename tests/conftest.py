@@ -29,7 +29,11 @@ def db_session(create_db):
 
 @pytest.fixture(scope="function")
 def test_user(db_session):
-    user = User(email="user@email.com", password="testpassword")
+    user = User(
+        email="user@email.com",
+        password_hash="testpassword",
+        username="user",
+    )
     db_session.add(user)
     db_session.commit()
     return user
@@ -38,7 +42,6 @@ def test_user(db_session):
 @pytest.fixture(scope="function")
 def test_profile(db_session, test_user):
     profile_info = {
-        "username": "user",
         "bio": "test user",
         "image": "https://url/to/image.jpg",
     }

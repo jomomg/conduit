@@ -1,9 +1,11 @@
 import uuid
 import base64
+import string
+import random
 from slugify import slugify
 
 
-def generate_b64_uuid():
+def generate_b64_uuid() -> str:
     uuid_bytes = uuid.uuid4().bytes
     b64_uuid = base64.urlsafe_b64encode(uuid_bytes).rstrip(b"=").decode("utf-8")
     return b64_uuid

@@ -27,7 +27,7 @@ class User(Base):
     __tablename__ = "users"
 
     id: Mapped[str] = mapped_column(primary_key=True, default=generate_b64_uuid)
-    email: Mapped[str]
+    email: Mapped[str] = mapped_column(unique=True)
     password_hash: Mapped[str]
     username: Mapped[str]
     profile: Mapped["Profile"] = relationship(
@@ -64,7 +64,7 @@ class Profile(Base):
     __tablename__ = "profiles"
 
     id: Mapped[str] = mapped_column(primary_key=True, default=generate_b64_uuid)
-    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), unique=True)
+    user_id: Mapped[str] = mapped_column(ForeignKey("users.id"), unique=True)
 
     bio: Mapped[Optional[str]]
     image: Mapped[Optional[str]]
@@ -99,7 +99,7 @@ class Article(Base):
     id: Mapped[str] = mapped_column(primary_key=True, default=generate_b64_uuid)
     title: Mapped[str] = mapped_column(String(300))
     slug: Mapped[str]
-    profile_id: Mapped[int] = mapped_column(ForeignKey("profiles.id"))
+    profile_id: Mapped[str] = mapped_column(ForeignKey("profiles.id"))
     description: Mapped[Optional[str]]
     body: Mapped[Optional[str]]
     created_at: Mapped[datetime] = mapped_column(server_default=func.now())
@@ -136,8 +136,8 @@ class Comment(Base):
     __tablename__ = "comments"
 
     id: Mapped[str] = mapped_column(primary_key=True, default=generate_b64_uuid)
-    profile_id: Mapped[int] = mapped_column(ForeignKey("profiles.id"))
-    article_id: Mapped[int] = mapped_column(ForeignKey("articles.id"))
+    profile_id: Mapped[str] = mapped_column(ForeignKey("profiles.id"))
+    article_id: Mapped[str] = mapped_column(ForeignKey("articles.id"))
     body: Mapped[str]
     article: Mapped["Article"] = relationship(back_populates="comments")
     author: Mapped["Profile"] = relationship(back_populates="comments")

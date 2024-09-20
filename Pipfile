@@ -9,6 +9,8 @@ sqlalchemy = "*"
 python-slugify = "*"
 alembic = "*"
 pytest = "*"
+pyjwt = "*"
+passlib = {extras = ["bcrypt"], version = "*"}
 
 [dev-packages]
 
