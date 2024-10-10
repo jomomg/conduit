@@ -11,6 +11,7 @@ alembic = "*"
 pytest = "*"
 pyjwt = "*"
 passlib = {extras = ["bcrypt"], version = "*"}
+httpx = "*"
 
 [dev-packages]
 

@@ -230,17 +230,17 @@ async def get_article_comments(slug: str, db: DatabaseDep):
     return article.comments
 
 
-@router.delete("/articles/{slug}/comments/{id}")
+@router.delete("/articles/{slug}/comments/{comment_id}")
 async def delete_article_comment(
     slug: str,
-    id: str,
+    comment_id: str,
     db: DatabaseDep,
     _: ActiveUserDep,
 ):
     """Delete comment from an article"""
 
     get_article_by_slug_or_404(db, slug=slug)
-    query = select(Comment).where(Comment.id == id)
+    query = select(Comment).where(Comment.id == comment_id)
     result = db.execute(query).scalar()
     if not result:
         raise HTTPException(

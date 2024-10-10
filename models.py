@@ -29,7 +29,7 @@ class User(Base):
     id: Mapped[str] = mapped_column(primary_key=True, default=generate_b64_uuid)
     email: Mapped[str] = mapped_column(unique=True)
     password_hash: Mapped[str]
-    username: Mapped[str]
+    username: Mapped[str] = mapped_column(unique=True)
     profile: Mapped["Profile"] = relationship(
         back_populates="user", cascade="all, delete-orphan", uselist=False
     )
@@ -76,7 +76,7 @@ class Profile(Base):
         secondary=profile_favorites, back_populates="favorited_by"
     )
 
-    following: Mapped[list["Profile"]] = relationship(
+    follows: Mapped[list["Profile"]] = relationship(
         secondary=profile_follows,
         primaryjoin=id == profile_follows.c.follower_id,
         secondaryjoin=id == profile_follows.c.following_id,
@@ -86,8 +86,20 @@ class Profile(Base):
         secondary=profile_follows,
         primaryjoin=id == profile_follows.c.following_id,
         secondaryjoin=id == profile_follows.c.follower_id,
-        back_populates="following",
+        back_populates="follows",
     )
+
+    @property
+    def username(self) -> str:
+        return self.user.username
+
+    def set_as_follower(self, profile):
+        if profile not in self.followers:
+            self.followers.append(profile)
+
+    def remove_as_follower(self, profile):
+        if profile in self.followers:
+            self.followers.remove(profile)
 
     def __repr__(self) -> str:
         return f"Profile(username={self.username})"
@@ -98,7 +110,7 @@ class Article(Base):
 
     id: Mapped[str] = mapped_column(primary_key=True, default=generate_b64_uuid)
     title: Mapped[str] = mapped_column(String(300))
-    slug: Mapped[str]
+    slug: Mapped[str] = mapped_column(unique=True)
     profile_id: Mapped[str] = mapped_column(ForeignKey("profiles.id"))
     description: Mapped[Optional[str]]
     body: Mapped[Optional[str]]
@@ -113,13 +125,24 @@ class Article(Base):
         secondary=profile_favorites, back_populates="favorites"
     )
 
-    def __repr__(self) -> str:
-        return f"Article(id={self.id!r}, title={self.title!r})"
+    @property
+    def favorites_count(self) -> int:
+        count = 0
+        for _ in self.favorited_by:
+            count += 1
+        return count
+
+    @property
+    def tag_list(self) -> list[str | None]:
+        return [tag.name for tag in self.tags]
 
     @validates("title")
     def generate_slug(self, key, value):
         self.slug = slugify_title(value)
         return value
+
+    def __repr__(self) -> str:
+        return f"Article(id={self.id!r}, title={self.title!r})"
 
 
 class Tag(Base):

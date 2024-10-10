@@ -1,7 +1,5 @@
 import uuid
 import base64
-import string
-import random
 from slugify import slugify
 
 
@@ -15,12 +13,3 @@ def slugify_title(title) -> str:
     uuid_str = generate_b64_uuid()
     to_slug = f"{title}_{uuid_str}"
     return slugify(to_slug)
-
-
-def test():
-    # print(generate_b64_uuid())
-    print(slugify_title("Test Title"))
-
-
-if __name__ == "__main__":
-    test()

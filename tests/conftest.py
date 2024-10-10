@@ -1,7 +1,10 @@
 import pytest
+from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from ..models import Base, User, Profile, Article
+from ..dependencies import get_db, create_access_token
+from ..main import app
 
 
 TEST_DATABASE_URL = "sqlite:///./test_db.sqlite"
@@ -9,22 +12,39 @@ engine = create_engine(TEST_DATABASE_URL)
 TestSessionMaker = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 
-@pytest.fixture(scope="module")
+def override_get_db():
+    try:
+        db = TestSessionMaker()
+        yield db
+    finally:
+        db.close()
+
+
+app.dependency_overrides[get_db] = override_get_db
+client = TestClient(app)
+
+
+@pytest.fixture(scope="function")
 def create_db():
     Base.metadata.create_all(engine)
     yield
     Base.metadata.drop_all(engine)
 
 
-@pytest.fixture(scope="function")
+# @pytest.fixture(scope="function")
+# def db_session(create_db):
+#     connection = engine.connect()
+#     transaction = connection.begin()
+#     session = TestSessionMaker(bind=connection)
+#     yield session
+#     session.close()
+#     transaction.rollback()
+#     connection.close()
+
+
+@pytest.fixture
 def db_session(create_db):
-    connection = engine.connect()
-    transaction = connection.begin()
-    session = TestSessionMaker(bind=connection)
-    yield session
-    session.close()
-    transaction.rollback()
-    connection.close()
+    yield next(override_get_db())
 
 
 @pytest.fixture(scope="function")
@@ -64,3 +84,37 @@ def test_article(db_session, test_profile):
     db_session.add(article)
     db_session.commit()
     return article
+
+
+@pytest.fixture(scope="function")
+def test_token(create_db):
+    user_details = {
+        "username": "tokenuser",
+        "email": "token@email.com",
+        "password_hash": "pass",
+    }
+    db = next(override_get_db())
+    user = User(**user_details)
+    db.add(user)
+    profile = Profile()
+    user.profile = profile
+    db.commit()
+    payload = {
+        "sub": user.id,
+        "email": user.email,
+        "username": user.username,
+    }
+    token = create_access_token(payload)
+    db.close()
+    return token
+
+
+@pytest.fixture
+def favorite_article():
+    user_details = {
+        "username": "fave",
+        "email": "fave@email.com",
+        "password_hash": "pass",
+    }
+    user = User(**user_details)
+    pass

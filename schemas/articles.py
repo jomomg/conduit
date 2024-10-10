@@ -25,11 +25,14 @@ class ListArticleOut(BaseModel):
     updated_at: Optional[datetime]
     favorited: bool = False
     favorites_count: int
-    Profile: Profile
+    author: Profile
     tag_list: Optional[list[str]]
 
 
 class ArticleOut(ListArticleOut):
+    model_config = ConfigDict(
+        from_attributes=True, alias_generator=to_camel, populate_by_name=True
+    )
     body: str
 
 

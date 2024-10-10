@@ -1,11 +1,10 @@
-import jwt
 from typing import Annotated
 from fastapi import APIRouter, Body, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from passlib.context import CryptContext
 from ..dependencies import get_db, get_current_active_user, create_access_token
 from ..models import User, Profile
-from ..schemas import (
+from ..schemas.users import (
     UserRegisterOut,
     UserOut,
     UserLogin,
@@ -17,6 +16,9 @@ from ..schemas import (
 router = APIRouter()
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+DatabaseDep = Annotated[Session, Depends(get_db)]
+ActiveUserDep = Annotated[User, Depends(get_current_active_user)]
 
 
 def get_password_hash(password: str) -> str:
@@ -33,10 +35,8 @@ def get_user_by_email(db: Session, email: str) -> User | None:
 
 
 # get current user
-@router.get("/user")
-async def get_user(
-    current_user: Annotated[User, Depends(get_current_active_user)]
-) -> UserOut:
+@router.get("/user", response_model=UserOut)
+async def get_user(current_user: Annotated[User, Depends(get_current_active_user)]):
     return {
         "email": current_user.email,
         "username": current_user.username,
@@ -104,8 +104,8 @@ async def login(
 @router.put("/user", response_model=UserUpdate, response_model_exclude={"password"})
 async def update_user(
     user: Annotated[UserUpdate, Body(embed=True)],
-    active_user: Annotated[User, Depends(get_current_active_user)],
-    db: Annotated[Session, Depends(get_db)],
+    active_user: ActiveUserDep,
+    db: DatabaseDep,
 ):
     profile_attrs = ["bio", "image"]
     existing = get_user_by_email(db, user.email)

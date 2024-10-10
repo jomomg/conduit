@@ -26,11 +26,11 @@ def test_profile_following(db_session, test_profile):
     profile2 = Profile(user_id=user2.id)
     db_session.add_all([profile1, profile2])
     db_session.commit()
-    test_profile.following.append(profile1)
+    test_profile.follows.append(profile1)
     assert test_profile in profile1.followers
     profile2.followers.extend([profile1, test_profile])
-    assert profile2 in profile1.following
-    assert profile2 in test_profile.following
+    assert profile2 in profile1.follows
+    assert profile2 in test_profile.follows
 
 
 def test_create_article(db_session, test_profile, test_article):

@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from typing import Optional
 
 
@@ -17,8 +17,7 @@ class UserRegisterIn(UserLogin):
 class UserRegisterOut(BaseUserSchema):
     username: str
 
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class UserOut(UserRegisterOut):
@@ -41,3 +40,4 @@ class UserUpdate(BaseModel):
 class DecodedToken(BaseModel):
     user_id: str
     email: str
+    username: str

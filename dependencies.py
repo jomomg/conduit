@@ -1,5 +1,4 @@
 import jwt
-from typing import Generator
 from sqlalchemy.orm import Session
 from .database import SessionMaker
 from jwt.exceptions import InvalidTokenError
@@ -9,13 +8,19 @@ from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
 from .models import User
-from .schemas import DecodedToken
+from .schemas.users import DecodedToken
 
 TOKEN_EXPIRY_MINUTES = 120
 SECRET_KEY = "TCEMfX9afLhjSPWHAhiipe2qfUxXW9OuQeWOXZKkGyBErBcFJJ"  # TODO move to .env
 JWT_ALGORITHM = "HS256"
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/users/login")
+
+credentials_exception = HTTPException(
+    status_code=status.HTTP_401_UNAUTHORIZED,
+    detail="Could not validate credentials",
+    headers={"WWW-Authenticate": "Bearer"},
+)
 
 
 def get_db():
@@ -26,15 +31,17 @@ def get_db():
         db_session.close()
 
 
-def decode_token(token: str) -> DecodedToken | None:
+def decode_token(token: str) -> DecodedToken:
     try:
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[JWT_ALGORITHM])
+        payload = jwt.decode(
+            token, SECRET_KEY, algorithms=[JWT_ALGORITHM], options={"verify_exp": False}
+        )
         sub = payload.get("sub")
         if not sub:
             raise InvalidTokenError
 
     except InvalidTokenError:
-        return None
+        raise credentials_exception
     else:
         return DecodedToken(
             user_id=sub, email=payload.get("email"), username=payload.get("username")
@@ -53,15 +60,11 @@ async def get_current_active_user(
     token: Annotated[str, Depends(oauth2_scheme)],
     db: Annotated[Session, Depends(get_db)],
 ) -> User:
-    CredentialsException = HTTPException(
-        status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Could not validate credentials",
-        headers={"WWW-Authenticate": "Bearer"},
-    )
+
     decoded_token = decode_token(token)
     if not decoded_token:
-        raise CredentialsException
+        raise credentials_exception
     active_user = db.get(User, decoded_token.user_id)
     if not active_user:
-        raise CredentialsException
+        raise credentials_exception
     return active_user
