@@ -1,4 +1,4 @@
-from typing import Annotated
+from typing import Annotated, Literal
 from fastapi import APIRouter, Body, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from passlib.context import CryptContext
@@ -29,9 +29,12 @@ def verify_password(plain_password: str, password_hash: str) -> bool:
     return pwd_context.verify(plain_password, password_hash)
 
 
-def get_user_by_email(db: Session, email: str) -> User | None:
-    user = db.query(User).filter(User.email == email).first()
-    return user
+def get_user_by_attribute(
+    db: Session, attribute: Literal["email", "username"], value: str | None
+) -> User | None:
+    if value and attribute in ["email", "username"]:
+        return db.query(User).filter_by(**{attribute: value}).first()
+    return None
 
 
 # get current user
@@ -50,7 +53,7 @@ async def get_user(current_user: Annotated[User, Depends(get_current_active_user
 async def register_user(
     user: Annotated[UserRegisterIn, Body(embed=True)], db: Session = Depends(get_db)
 ):
-    existing = get_user_by_email(db, user.email)
+    existing = get_user_by_attribute(db, "email", user.email)
     if existing:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST, detail="Email already exists"
@@ -76,7 +79,7 @@ async def login(
         detail="Incorrect email or password",
         headers={"WWW-Authenticate": "Bearer"},
     )
-    current_user = get_user_by_email(db, user.email)
+    current_user = get_user_by_attribute(db, "email", user.email)
     if not current_user:
         raise unauthorized_exception
 
@@ -108,10 +111,16 @@ async def update_user(
     db: DatabaseDep,
 ):
     profile_attrs = ["bio", "image"]
-    existing = get_user_by_email(db, user.email)
-    if existing:
+    existing_email = get_user_by_attribute(db, "email", user.email)
+    if existing_email and existing_email is not active_user:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST, detail="Email already exists"
+        )
+
+    existing_username = get_user_by_attribute(db, "username", user.username)
+    if existing_username and existing_username is not active_user:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Username already exists"
         )
 
     for key, value in user.model_dump(exclude_unset=True).items():

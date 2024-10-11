@@ -1,6 +1,7 @@
 import random
 import string
 import jwt
+import pytest
 from typing import Any
 from fastapi import Response
 from fastapi.testclient import TestClient
@@ -111,20 +112,22 @@ def test_get_list_of_articles_filtered_by_favorited(
     assert len(response.json()) == 0
 
 
-def test_get_list_of_articles_with_limit_and_offset(test_token):
+@pytest.mark.parametrize(
+    "params, expected_length",
+    [
+        ({"limit": 3}, 3),  # limit is 3
+        ({"offset": 3}, 2),  # offset is 3
+        ({"offset": 0}, 5),  # offset is 0
+        ({"limit": 0}, 0),  # limit is 0
+    ],
+)
+def test_get_list_of_articles_with_limit_and_offset(
+    test_token, params, expected_length
+):
     create_articles(test_token, number=5)
-    response = client.get("/api/articles?limit=3")
+    response = client.get("/api/articles", params=params)
     assert response.status_code == 200
-    assert len(response.json()) == 3
-    response = client.get("/api/articles?offset=3")
-    assert response.status_code == 200
-    assert len(response.json()) == 2
-    response = client.get("/api/articles?offset=0")
-    assert response.status_code == 200
-    assert len(response.json()) == 5
-    response = client.get("/api/articles?limit=0")
-    assert response.status_code == 200
-    assert len(response.json()) == 0
+    assert len(response.json()) == expected_length
 
 
 def test_get_single_article_using_slug(test_article, test_profile):
@@ -265,7 +268,7 @@ def test_deleting_comment_from_article(
     assert comments[0] not in test_article.comments
 
 
-def test_deleting_article(test_token, db_session):
+def test_deleting_article_succeeds(test_token, db_session):
     _, response = create_articles(test_token, number=1)[0]
     slug = response.json()["slug"]
     response = client.delete(
