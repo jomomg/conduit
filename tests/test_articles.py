@@ -92,8 +92,7 @@ def test_get_list_of_articles_filtered_by_author(test_token):
     assert len(data) == 2
     assert data[0]["author"]["username"] == author
     response = client.get("/api/articles?author=IdontExist")
-    assert response.status_code == 200
-    assert len(response.json()) == 0
+    assert response.status_code == 404
 
 
 def test_get_list_of_articles_filtered_by_favorited(
@@ -101,15 +100,15 @@ def test_get_list_of_articles_filtered_by_favorited(
 ):
     test_user.profile = test_profile
     test_profile.favorites.append(test_article)
+    db_session.commit()
     create_articles(test_token, number=2)
     response = client.get(f"/api/articles?favorited={test_profile.username}")
     assert response.status_code == 200
     data = response.json()
     assert len(data) == 1
-    assert data["slug"] == test_article.slug
+    assert data[0]["slug"] == test_article.slug
     response = client.get(f"/api/articles?favorited=IdontExist")
-    assert response.status_code == 200
-    assert len(response.json()) == 0
+    assert response.status_code == 404
 
 
 @pytest.mark.parametrize(

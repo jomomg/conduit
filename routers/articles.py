@@ -121,7 +121,7 @@ async def list_articles(
         query = query.where(Article.author == user.profile)
     if favorited:
         user = get_user_or_404(db, username=favorited)
-        query = query.where(Article.favorited_by.has(User.profile == user.profile))
+        query = query.where(Article.favorited_by.any(User.profile == user.profile))
     query = query.order_by(desc(Article.created_at)).limit(limit).offset(offset)
     articles = [
         set_favorited_status(article) for article in db.execute(query).scalars()
