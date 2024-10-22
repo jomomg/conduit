@@ -277,3 +277,18 @@ def test_deleting_article_succeeds(test_token, db_session):
     assert response.status_code == 200
     article = db_session.query(Article).filter(Article.slug == slug).first()
     assert article is None
+
+
+def test_getting_all_tags_succeeds(db_session):
+    tag_names = ["random", "tag", "names"]
+    tags = []
+    for name in tag_names:
+        tag = Tag(name=name)
+        tags.append(tag)
+        db_session.add(tag)
+    db_session.commit()
+    response = client.get("/api/tags")
+    assert response.status_code == 200
+    data = response.json()
+    assert "tags" in data
+    assert set(data["tags"]) == set(tag_names)
