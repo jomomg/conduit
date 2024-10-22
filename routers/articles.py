@@ -1,4 +1,4 @@
-from typing import Annotated, Optional
+from typing import Annotated, Optional, Callable
 from functools import wraps
 from fastapi import APIRouter, Body, Depends, HTTPException, status
 from sqlalchemy import select, desc
@@ -22,12 +22,27 @@ DatabaseDep = Annotated[Session, Depends(get_db)]
 ActiveUserDep = Annotated[User, Depends(get_current_active_user)]
 
 
-def set_following_status(followed: Profile, following: Profile):
-    if following in followed.followers:
-        setattr(followed, "following", True)
-    else:
-        setattr(followed, "following", False)
-    return followed
+def set_following_flag(func: Callable) -> Callable:
+    @wraps(func)
+    async def wrapper(*args, **kwargs):
+
+        active_user = kwargs.get("user")
+        ret_object = await func(*args, **kwargs)
+
+        if not active_user:
+            return ret_object
+
+        def check_and_set_following(obj, profile):
+            if profile in obj.followers:
+                setattr(obj, "following", True)
+
+        if isinstance(ret_object, Profile):
+            check_and_set_following(ret_object, active_user.profile)
+        if isinstance(ret_object, Article) or isinstance(ret_object, Comment):
+            check_and_set_following(ret_object.author, active_user.profile)
+        return ret_object
+
+    return wrapper
 
 
 def set_favorited_status(
@@ -138,6 +153,7 @@ async def get_article(slug: str, db: DatabaseDep):
 
 
 @router.put("/articles/{slug}", response_model=ArticleOut)
+@set_following_flag
 async def update_article(
     slug: str,
     article_details: Annotated[ArticleUpdate, Body(embed=True, alias="article")],
@@ -170,6 +186,7 @@ async def delete_article(
 
 
 @router.post("/articles/{slug}/favorite", response_model=ArticleOut)
+@set_following_flag
 async def favorite_article(
     slug: str,
     user: ActiveUserDep,
@@ -188,6 +205,7 @@ async def favorite_article(
 
 
 @router.delete("/articles/{slug}/favorite", response_model=ArticleOut)
+@set_following_flag
 async def unfavorite_article(
     slug: str,
     user: ActiveUserDep,
@@ -204,6 +222,7 @@ async def unfavorite_article(
 
 
 @router.post("/articles/{slug}/comments", response_model=CommentOut)
+@set_following_flag
 async def add_article_comment(
     slug: str,
     comment_details: Annotated[CommentIn, Body(embed=True, alias="comment")],
