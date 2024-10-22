@@ -62,3 +62,7 @@ class CommentOut(CommentIn):
     created_at: datetime
     updated_at: Optional[datetime]
     author: Profile
+
+
+class TagList(BaseModel):
+    tags: list[str]
