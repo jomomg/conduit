@@ -12,6 +12,7 @@ from ..schemas.articles import (
     ListArticleOut,
     CommentIn,
     CommentOut,
+    TagList,
 )
 
 
@@ -40,7 +41,6 @@ def set_favorited_status(
 # TODO
 # set following status
 # make an authentication optional dependency
-# write tests for the endpoints
 
 
 def get_article_by_slug_or_404(db: Session, slug: str) -> Article:
@@ -121,7 +121,7 @@ async def list_articles(
         query = query.where(Article.author == user.profile)
     if favorited:
         user = get_user_or_404(db, username=favorited)
-        query = query.where(Article.favorited_by.any(User.profile == user.profile))
+        query = query.join(Article.favorited_by).where(Profile.id == user.profile.id)
     query = query.order_by(desc(Article.created_at)).limit(limit).offset(offset)
     articles = [
         set_favorited_status(article) for article in db.execute(query).scalars()
@@ -249,3 +249,12 @@ async def delete_article_comment(
     db.delete(result)
     db.commit()
     return
+
+
+@router.get("/tags", response_model=TagList)
+def get_tags(db: DatabaseDep):
+    """Return a list of tags"""
+
+    tag_list_query = select(Tag)
+    tag_list = db.execute(tag_list_query).scalars()
+    return {"tags": [tag.name for tag in tag_list]}
