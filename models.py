@@ -154,6 +154,9 @@ class Tag(Base):
         secondary=article_tags, back_populates="tags"
     )
 
+    def __repr__(self) -> str:
+        return f"<Tag: {self.name}>"
+
 
 class Comment(Base):
     __tablename__ = "comments"
