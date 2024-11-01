@@ -50,7 +50,12 @@ def create_articles(token, *, number=3) -> list[tuple[dict[str, Any], Response]]
 
 
 def test_article_creation_works(test_token, db_session):
-    article_details, response = create_articles(test_token, number=1)[0]
+    article_details = next(get_article_details())
+    response = client.post(
+        "/api/articles",
+        headers={"Authorization": f"Bearer {test_token}"},
+        json={"article": article_details},
+    )
     assert response.status_code == 200
     data = response.json()
     assert data["title"] == article_details["title"]
@@ -268,7 +273,12 @@ def test_deleting_comment_from_article(
 
 
 def test_deleting_article_succeeds(test_token, db_session):
-    _, response = create_articles(test_token, number=1)[0]
+    article_details = next(get_article_details())
+    response = client.post(
+        "/api/articles",
+        headers={"Authorization": f"Bearer {test_token}"},
+        json={"article": article_details},
+    )
     slug = response.json()["slug"]
     response = client.delete(
         f"/api/articles/{slug}",
