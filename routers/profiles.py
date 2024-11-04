@@ -1,17 +1,21 @@
 from typing import Literal
 from fastapi import APIRouter, Body
 from sqlalchemy.exc import IntegrityError
-from .articles import get_user_or_404, DatabaseDep, ActiveUserDep
+from .articles import get_user_or_404, DatabaseDep, ActiveUserDep, AuthOptionalDep
 from ..schemas.articles import Profile
 
 router = APIRouter()
 
 
 @router.get("/profiles/{username}", response_model=dict[Literal["profile"], Profile])
-async def get_profile_with_username(username: str, db: DatabaseDep):
+async def get_profile_with_username(
+    username: str, db: DatabaseDep, active_user: AuthOptionalDep
+):
     """Get user profile"""
 
     user = get_user_or_404(db, username)
+    if active_user and active_user.profile in user.profile.followers:
+        setattr(user.profile, "following", True)
     return {"profile": user.profile}
 
 

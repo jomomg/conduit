@@ -38,7 +38,9 @@ def test_following_status_is_set_correctly_when_authenticated(
     test_profile.followers.append(user.profile)
     db_session.commit()
     db_session.refresh(test_profile)
-    response = client.get(f"/api/profiles/{username}")
+    response = client.get(
+        f"/api/profiles/{username}", headers={"Authorization": f"Bearer {test_token}"}
+    )
     assert response.status_code == 200
     assert response.json()["profile"]["following"] == True
 

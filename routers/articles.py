@@ -3,7 +3,7 @@ from functools import wraps
 from fastapi import APIRouter, Body, Depends, HTTPException, status
 from sqlalchemy import select, desc
 from sqlalchemy.orm import Session
-from ..dependencies import get_db, get_current_active_user
+from ..dependencies import get_db, get_current_active_user, user_auth_optional
 from ..models import Article, User, Tag, Comment, Profile
 from ..schemas.articles import (
     ArticleCreate,
@@ -20,6 +20,7 @@ router = APIRouter()
 
 DatabaseDep = Annotated[Session, Depends(get_db)]
 ActiveUserDep = Annotated[User, Depends(get_current_active_user)]
+AuthOptionalDep = Annotated[Optional[User], Depends(user_auth_optional)]
 
 
 def set_following_flag(func: Callable) -> Callable:

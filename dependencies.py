@@ -1,8 +1,8 @@
+from typing import Annotated, Optional
 import jwt
 from sqlalchemy.orm import Session
 from .database import SessionMaker
 from jwt.exceptions import InvalidTokenError
-from typing import Annotated
 from datetime import datetime, timezone, timedelta
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
@@ -15,6 +15,7 @@ SECRET_KEY = "TCEMfX9afLhjSPWHAhiipe2qfUxXW9OuQeWOXZKkGyBErBcFJJ"  # TODO move t
 JWT_ALGORITHM = "HS256"
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/users/login")
+auth_optional = OAuth2PasswordBearer(tokenUrl="/api/users/login", auto_error=False)
 
 credentials_exception = HTTPException(
     status_code=status.HTTP_401_UNAUTHORIZED,
@@ -56,11 +57,7 @@ def create_access_token(token_payload: dict) -> str:
     return jwt_token
 
 
-async def get_current_active_user(
-    token: Annotated[str, Depends(oauth2_scheme)],
-    db: Annotated[Session, Depends(get_db)],
-) -> User:
-
+async def get_user_from_token(token: str, db: Session) -> User:
     decoded_token = decode_token(token)
     if not decoded_token:
         raise credentials_exception
@@ -68,3 +65,20 @@ async def get_current_active_user(
     if not active_user:
         raise credentials_exception
     return active_user
+
+
+async def get_current_active_user(
+    token: Annotated[str, Depends(oauth2_scheme)],
+    db: Annotated[Session, Depends(get_db)],
+) -> User:
+
+    return await get_user_from_token(token, db)
+
+
+async def user_auth_optional(
+    token: Annotated[Optional[str], Depends(auth_optional)],
+    db: Annotated[Session, Depends(get_db)],
+) -> User | None:
+    if not token:
+        return None
+    return await get_user_from_token(token, db)
