@@ -302,3 +302,19 @@ def test_getting_all_tags_succeeds(db_session):
     data = response.json()
     assert "tags" in data
     assert set(data["tags"]) == set(tag_names)
+
+
+def test_following_is_set_correctly_when_getting_article_with_auth(
+    db_session, test_article, test_token, test_profile
+):
+    slug = test_article.slug
+    decoded_token = decode_token(test_token)
+    token_user = db_session.get(User, decoded_token.user_id)
+    test_profile.followers.append(token_user.profile)
+    db_session.commit()
+    db_session.refresh(test_profile)
+    response = client.get(
+        f"api/articles/{slug}", headers={"Authorization": f"Bearer {test_token}"}
+    )
+    assert response.status_code == 200
+    assert response.json()["author"]["following"] == True

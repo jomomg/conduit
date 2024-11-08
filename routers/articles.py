@@ -27,10 +27,10 @@ def set_following_flag(func: Callable) -> Callable:
     @wraps(func)
     async def wrapper(*args, **kwargs):
 
-        active_user = kwargs.get("user")
+        current_user = kwargs.get("current_user")
         ret_object = await func(*args, **kwargs)
 
-        if not active_user:
+        if not current_user:
             return ret_object
 
         def check_and_set_following(obj, profile):
@@ -38,9 +38,9 @@ def set_following_flag(func: Callable) -> Callable:
                 setattr(obj, "following", True)
 
         if isinstance(ret_object, Profile):
-            check_and_set_following(ret_object, active_user.profile)
+            check_and_set_following(ret_object, current_user.profile)
         if isinstance(ret_object, Article) or isinstance(ret_object, Comment):
-            check_and_set_following(ret_object.author, active_user.profile)
+            check_and_set_following(ret_object.author, current_user.profile)
         return ret_object
 
     return wrapper
@@ -52,11 +52,6 @@ def set_favorited_status(
     status = bool(current_profile) and article in current_profile.favorites
     setattr(article, "favorited", status)
     return article
-
-
-# TODO
-# set following status
-# make an authentication optional dependency
 
 
 def get_article_by_slug_or_404(db: Session, slug: str) -> Article:
@@ -95,7 +90,7 @@ def find_or_create_tags(db: Session, tag_names: list[str]) -> list[Tag]:
 @router.post("/articles", response_model=ArticleOut)
 async def create_article(
     article_details: Annotated[ArticleCreate, Body(embed=True, alias="article")],
-    active_user: ActiveUserDep,
+    current_user: ActiveUserDep,
     db: DatabaseDep,
 ):
     """Create a new article"""
@@ -105,7 +100,7 @@ async def create_article(
         body=article_details.body,
         description=article_details.description,
     )
-    new_article.author = active_user.profile
+    new_article.author = current_user.profile
     tags_to_add = find_or_create_tags(db, article_details.tagList)
     new_article.tags = tags_to_add
     db.add(new_article)
@@ -146,7 +141,8 @@ async def list_articles(
 
 
 @router.get("/articles/{slug}", response_model=ArticleOut)
-async def get_article(slug: str, db: DatabaseDep):
+@set_following_flag
+async def get_article(slug: str, db: DatabaseDep, current_user: AuthOptionalDep):
     """Retrieve a single article"""
 
     article = get_article_by_slug_or_404(db, slug=slug)
@@ -190,18 +186,18 @@ async def delete_article(
 @set_following_flag
 async def favorite_article(
     slug: str,
-    user: ActiveUserDep,
+    current_user: ActiveUserDep,
     db: DatabaseDep,
 ):
     """Favorite an article"""
 
     article = get_article_by_slug_or_404(db, slug=slug)
-    favorites = user.profile.favorites
+    favorites = current_user.profile.favorites
     if article not in favorites:
         favorites.append(article)
     db.commit()
     db.refresh(article)
-    article = set_favorited_status(article, user.profile)
+    article = set_favorited_status(article, current_user.profile)
     return article
 
 
@@ -209,13 +205,13 @@ async def favorite_article(
 @set_following_flag
 async def unfavorite_article(
     slug: str,
-    user: ActiveUserDep,
+    current_user: ActiveUserDep,
     db: DatabaseDep,
 ):
     """unfavorite an article"""
 
     article = get_article_by_slug_or_404(db, slug=slug)
-    favorites = user.profile.favorites
+    favorites = current_user.profile.favorites
     if article in favorites:
         favorites.remove(article)
     db.commit()
@@ -227,14 +223,14 @@ async def unfavorite_article(
 async def add_article_comment(
     slug: str,
     comment_details: Annotated[CommentIn, Body(embed=True, alias="comment")],
-    user: ActiveUserDep,
+    current_user: ActiveUserDep,
     db: DatabaseDep,
 ):
     """Add a comment to an article"""
 
     new_comment = Comment(body=comment_details.body)
     article = get_article_by_slug_or_404(db, slug=slug)
-    new_comment.author = user.profile
+    new_comment.author = current_user.profile
     new_comment.article = article
     db.add(new_comment)
     db.commit()
