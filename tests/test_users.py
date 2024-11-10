@@ -23,7 +23,7 @@ def test_user_registration_works(db_session):
     }
     response = client.post("/api/users", json=user_details)
     assert response.status_code == 200
-    return_data = response.json()
+    return_data = response.json()["user"]
     assert "password" not in return_data
     assert "email" in return_data
     assert "username" in return_data
@@ -44,8 +44,9 @@ def test_user_login_with_correct_credentials_works(db_session):
     assert register.status_code == 200
     login = client.post("api/users/login", json=user_details)
     assert login.status_code == 200
-    assert "token" in login.json()
-    assert "password" not in login.json()
+    data = login.json()["user"]
+    assert "token" in data
+    assert "password" not in data
 
 
 @pytest.mark.parametrize(
@@ -73,7 +74,7 @@ def test_updating_user_details_works(test_token):
         "/api/user", headers={"Authorization": f"Bearer {test_token}"}, json=new_details
     )
     assert update.status_code == 200
-    data = update.json()
+    data = update.json()["user"]
     assert data["email"] == new_details["user"]["email"]
     assert data["username"] == new_details["user"]["username"]
     assert "password" not in data
@@ -107,6 +108,6 @@ def test_getting_current_user_details_works(test_token, db_session):
     )
     assert response.status_code == 200
     decoded_token = decode_token(test_token)
-    data = response.json()
+    data = response.json()["user"]
     assert data["username"] == decoded_token.username
     assert data["email"] == decoded_token.email

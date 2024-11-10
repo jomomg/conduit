@@ -2,31 +2,19 @@ from pydantic import BaseModel, ConfigDict
 from typing import Optional
 
 
-class BaseUserSchema(BaseModel):
+class UserLogin(BaseModel):
     email: str
-
-
-class UserLogin(BaseUserSchema):
     password: str
 
 
-class UserRegisterIn(UserLogin):
+class UserRegister(UserLogin):
     username: str
 
 
-class UserRegisterOut(BaseUserSchema):
+class UserRegisterOut(BaseModel):
+    email: str
     username: str
-
     model_config = ConfigDict(from_attributes=True)
-
-
-class UserOut(UserRegisterOut):
-    bio: str | None = None
-    image: str | None = None
-
-
-class UserLoginOut(UserOut):
-    token: str
 
 
 class UserUpdate(BaseModel):
