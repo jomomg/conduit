@@ -37,10 +37,9 @@ def set_following_flag(func: Callable) -> Callable:
             if profile in obj.followers:
                 setattr(obj, "following", True)
 
-        if isinstance(ret_object, Profile):
-            check_and_set_following(ret_object, current_user.profile)
-        if isinstance(ret_object, Article) or isinstance(ret_object, Comment):
-            check_and_set_following(ret_object.author, current_user.profile)
+        article = ret_object.get("article")
+        if article:
+            check_and_set_following(article.author, current_user.profile)
         return ret_object
 
     return wrapper
@@ -87,7 +86,7 @@ def find_or_create_tags(db: Session, tag_names: list[str]) -> list[Tag]:
     return new_tags + existing_tags
 
 
-@router.post("/articles", response_model=ArticleOut)
+@router.post("/articles", response_model=dict[str, ArticleOut])
 async def create_article(
     article_details: Annotated[ArticleCreate, Body(embed=True, alias="article")],
     current_user: ActiveUserDep,
@@ -106,12 +105,12 @@ async def create_article(
     db.add(new_article)
     db.commit()
     db.refresh(new_article)
-    return new_article
+    return {"article": new_article}
 
 
 @router.get(
     "/articles",
-    response_model=list[ListArticleOut],
+    response_model=dict[str, list[ListArticleOut]],
 )
 async def list_articles(
     db: DatabaseDep,
@@ -137,19 +136,19 @@ async def list_articles(
     articles = [
         set_favorited_status(article) for article in db.execute(query).scalars()
     ]
-    return articles
+    return {"articles": articles}
 
 
-@router.get("/articles/{slug}", response_model=ArticleOut)
+@router.get("/articles/{slug}", response_model=dict[str, ArticleOut])
 @set_following_flag
 async def get_article(slug: str, db: DatabaseDep, current_user: AuthOptionalDep):
     """Retrieve a single article"""
 
     article = get_article_by_slug_or_404(db, slug=slug)
-    return article
+    return {"article": article}
 
 
-@router.put("/articles/{slug}", response_model=ArticleOut)
+@router.put("/articles/{slug}", response_model=dict[str, ArticleOut])
 @set_following_flag
 async def update_article(
     slug: str,
@@ -165,7 +164,7 @@ async def update_article(
     db.commit()
     db.refresh(article)
     article = set_favorited_status(article, current_user.profile)
-    return article
+    return {"article": article}
 
 
 @router.delete("/articles/{slug}")
@@ -182,7 +181,7 @@ async def delete_article(
     return
 
 
-@router.post("/articles/{slug}/favorite", response_model=ArticleOut)
+@router.post("/articles/{slug}/favorite", response_model=dict[str, ArticleOut])
 @set_following_flag
 async def favorite_article(
     slug: str,
@@ -198,10 +197,10 @@ async def favorite_article(
     db.commit()
     db.refresh(article)
     article = set_favorited_status(article, current_user.profile)
-    return article
+    return {"article": article}
 
 
-@router.delete("/articles/{slug}/favorite", response_model=ArticleOut)
+@router.delete("/articles/{slug}/favorite", response_model=dict[str, ArticleOut])
 @set_following_flag
 async def unfavorite_article(
     slug: str,
@@ -215,10 +214,10 @@ async def unfavorite_article(
     if article in favorites:
         favorites.remove(article)
     db.commit()
-    return article
+    return {"article": article}
 
 
-@router.post("/articles/{slug}/comments", response_model=CommentOut)
+@router.post("/articles/{slug}/comments", response_model=dict[str, CommentOut])
 @set_following_flag
 async def add_article_comment(
     slug: str,
@@ -235,15 +234,15 @@ async def add_article_comment(
     db.add(new_comment)
     db.commit()
     db.refresh(new_comment)
-    return new_comment
+    return {"comment": new_comment}
 
 
-@router.get("/articles/{slug}/comments", response_model=list[CommentOut])
+@router.get("/articles/{slug}/comments", response_model=dict[str, list[CommentOut]])
 async def get_article_comments(slug: str, db: DatabaseDep):
     """Get comments associated with an article"""
 
     article = get_article_by_slug_or_404(db, slug=slug)
-    return article.comments
+    return {"comments": article.comments}
 
 
 @router.delete("/articles/{slug}/comments/{comment_id}")

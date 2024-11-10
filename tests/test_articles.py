@@ -57,7 +57,7 @@ def test_article_creation_works(test_token, db_session):
         json={"article": article_details},
     )
     assert response.status_code == 200
-    data = response.json()
+    data = response.json()["article"]
     assert data["title"] == article_details["title"]
     article = db_session.query(Article).filter_by(slug=data["slug"]).first()
     assert article is not None
@@ -71,7 +71,7 @@ def test_get_list_of_articles(test_token, db_session):
     articles = create_articles(test_token)
     response = client.get("/api/articles")
     assert response.status_code == 200
-    data = response.json()
+    data = response.json()["articles"]
     assert len(data) == len(articles)
 
 
@@ -80,12 +80,12 @@ def test_get_list_of_articles_filtered_by_tag(test_token):
     tag = article["tagList"][0]
     response = client.get(f"/api/articles?tag={tag}")
     assert response.status_code == 200
-    data = response.json()
+    data = response.json()["articles"]
     assert len(data) == 1
     assert tag in data[0]["tagList"]
     response = client.get(f"/api/articles?tag=idontexist")
     assert response.status_code == 200
-    assert len(response.json()) == 0
+    assert len(response.json()["articles"]) == 0
 
 
 def test_get_list_of_articles_filtered_by_author(test_token):
@@ -93,7 +93,7 @@ def test_get_list_of_articles_filtered_by_author(test_token):
     author = decode_token(test_token).username
     response = client.get(f"/api/articles?author={author}")
     assert response.status_code == 200
-    data = response.json()
+    data = response.json()["articles"]
     assert len(data) == 2
     assert data[0]["author"]["username"] == author
     response = client.get("/api/articles?author=IdontExist")
@@ -109,7 +109,7 @@ def test_get_list_of_articles_filtered_by_favorited(
     create_articles(test_token, number=2)
     response = client.get(f"/api/articles?favorited={test_profile.username}")
     assert response.status_code == 200
-    data = response.json()
+    data = response.json()["articles"]
     assert len(data) == 1
     assert data[0]["slug"] == test_article.slug
     response = client.get(f"/api/articles?favorited=IdontExist")
@@ -131,14 +131,14 @@ def test_get_list_of_articles_with_limit_and_offset(
     create_articles(test_token, number=5)
     response = client.get("/api/articles", params=params)
     assert response.status_code == 200
-    assert len(response.json()) == expected_length
+    assert len(response.json()["articles"]) == expected_length
 
 
 def test_get_single_article_using_slug(test_article, test_profile):
     slug = test_article.slug
     response = client.get(f"api/articles/{slug}")
     assert response.status_code == 200
-    data = response.json()
+    data = response.json()["article"]
     assert data["slug"] == slug
     assert data["title"] == test_article.title
     assert data["author"]["username"] == test_profile.username
@@ -185,7 +185,7 @@ def test_changing_slug_author_not_possible_during_update(
     db_session.refresh(test_article)
     assert test_article.slug != updated_details["article"]["slug"]
     assert (
-        response.json()["author"]["username"]
+        response.json()["article"]["author"]["username"]
         != updated_details["article"]["author"]["username"]
     )
 
@@ -197,7 +197,7 @@ def test_favoriting_article(test_token, test_article, db_session):
         headers={"Authorization": f"Bearer {test_token}"},
     )
     assert response.status_code == 200
-    assert response.json()["favorited"] == True
+    assert response.json()["article"]["favorited"] == True
     user = (
         db_session.query(User)
         .filter_by(username=decode_token(test_token).username)
@@ -213,7 +213,7 @@ def test_unfavoriting_article(test_article, test_token, db_session):
         headers={"Authorization": f"Bearer {test_token}"},
     )
     assert response.status_code == 200
-    assert response.json()["favorited"] == False
+    assert response.json()["article"]["favorited"] == False
     user = (
         db_session.query(User)
         .filter_by(username=decode_token(test_token).username)
@@ -250,7 +250,7 @@ def test_getting_article_comments(test_article, test_token, test_profile, db_ses
     db_session.commit()
     response = client.get(f"/api/articles/{slug}/comments")
     assert response.status_code == 200
-    assert len(response.json()) == 3
+    assert len(response.json()["comments"]) == 3
 
 
 def test_deleting_comment_from_article(
@@ -279,7 +279,7 @@ def test_deleting_article_succeeds(test_token, db_session):
         headers={"Authorization": f"Bearer {test_token}"},
         json={"article": article_details},
     )
-    slug = response.json()["slug"]
+    slug = response.json()["article"]["slug"]
     response = client.delete(
         f"/api/articles/{slug}",
         headers={"Authorization": f"Bearer {test_token}"},
@@ -317,4 +317,4 @@ def test_following_is_set_correctly_when_getting_article_with_auth(
         f"api/articles/{slug}", headers={"Authorization": f"Bearer {test_token}"}
     )
     assert response.status_code == 200
-    assert response.json()["author"]["following"] == True
+    assert response.json()["article"]["author"]["following"] == True
