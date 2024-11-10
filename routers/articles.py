@@ -4,7 +4,7 @@ from fastapi import APIRouter, Body, Depends, HTTPException, status
 from sqlalchemy import select, desc
 from sqlalchemy.orm import Session
 from ..dependencies import get_db, get_current_active_user, user_auth_optional
-from ..models import Article, User, Tag, Comment, Profile
+from ..models import Article, User, Tag, Comment, Profile, profile_follows
 from ..schemas.articles import (
     ArticleCreate,
     ArticleOut,
@@ -33,13 +33,10 @@ def set_following_flag(func: Callable) -> Callable:
         if not current_user:
             return ret_object
 
-        def check_and_set_following(obj, profile):
-            if profile in obj.followers:
-                setattr(obj, "following", True)
-
         article = ret_object.get("article")
         if article:
-            check_and_set_following(article.author, current_user.profile)
+            if current_user.profile in article.author.followers:
+                setattr(article.author, "following", True)
         return ret_object
 
     return wrapper
@@ -139,12 +136,38 @@ async def list_articles(
     return {"articles": articles}
 
 
+@router.get("/articles/feed", response_model=dict[str, list[ListArticleOut]])
+def article_feed(
+    current_user: ActiveUserDep,
+    db: DatabaseDep,
+    offset: int = 0,
+    limit: int = 20,
+):
+    stmt = (
+        select(Article)
+        .join(Profile, Article.profile_id == Profile.id)
+        .join(profile_follows, profile_follows.c.following_id == Profile.id)
+        .where(profile_follows.c.follower_id == current_user.profile.id)
+        .order_by(desc(Article.created_at))
+        .limit(limit)
+        .offset(offset)
+    )
+    result = db.execute(stmt).scalars()
+    articles = []
+    for article in result:
+        setattr(article.author, "following", True)
+        articles.append(article)
+    return {"articles": articles}
+
+
 @router.get("/articles/{slug}", response_model=dict[str, ArticleOut])
 @set_following_flag
 async def get_article(slug: str, db: DatabaseDep, current_user: AuthOptionalDep):
     """Retrieve a single article"""
 
     article = get_article_by_slug_or_404(db, slug=slug)
+    if current_user:
+        article = set_favorited_status(article, current_user.profile)
     return {"article": article}
 
 

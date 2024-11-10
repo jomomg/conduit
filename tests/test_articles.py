@@ -318,3 +318,28 @@ def test_following_is_set_correctly_when_getting_article_with_auth(
     )
     assert response.status_code == 200
     assert response.json()["article"]["author"]["following"] == True
+
+
+def test_getting_article_feed_works(db_session, test_token, test_profile):
+    user_id = decode_token(test_token).user_id
+    token_user = db_session.get(User, user_id)
+    test_profile.followers.append(token_user.profile)
+    for _ in range(3):
+        article_details = next(get_article_details())
+        article_details.pop("tagList")
+        article = Article(**article_details)
+        article.author = test_profile
+        db_session.add(article)
+    db_session.commit()
+    response = client.get(
+        "/api/articles/feed", headers={"Authorization": f"Bearer {test_token}"}
+    )
+    assert response.status_code == 200
+    articles = response.json()["articles"]
+    assert len(articles) == 3
+    for article in articles:
+        assert article["author"]["username"] == test_profile.user.username
+        assert article["author"]["following"] == True
+
+
+# @TODO: check that favorited and following status are set correctly on the relevant responses
