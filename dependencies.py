@@ -1,14 +1,14 @@
 from typing import Annotated, Optional
 import jwt
 from sqlalchemy.orm import Session
-from .database import SessionMaker
+from database import SessionMaker
 from jwt.exceptions import InvalidTokenError
 from datetime import datetime, timezone, timedelta
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
-from .models import User
-from .schemas.users import DecodedToken
+from models import User
+from schemas.users import DecodedToken
 
 TOKEN_EXPIRY_MINUTES = 120
 SECRET_KEY = "TCEMfX9afLhjSPWHAhiipe2qfUxXW9OuQeWOXZKkGyBErBcFJJ"  # TODO move to .env

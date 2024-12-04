@@ -1,8 +1,13 @@
 from typing import Literal
 from fastapi import APIRouter, Body
 from sqlalchemy.exc import IntegrityError
-from .articles import get_user_or_404, DatabaseDep, ActiveUserDep, AuthOptionalDep
-from ..schemas.articles import Profile
+from routers.articles import (
+    get_user_or_404,
+    DatabaseDep,
+    ActiveUserDep,
+    AuthOptionalDep,
+)
+from schemas.articles import Profile
 
 router = APIRouter()
 

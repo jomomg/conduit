@@ -9,10 +9,8 @@ from sqlalchemy.orm import (
     relationship,
     validates,
 )
-from slugify import slugify
 
-from .database import engine, SessionMaker
-from .utils import slugify_title, generate_b64_uuid
+from utils import slugify_title, generate_b64_uuid
 
 
 def utcnow():

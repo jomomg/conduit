@@ -1,8 +1,8 @@
 import jwt
 from fastapi import FastAPI, APIRouter
-from .routers import profiles, users, articles
-from .database import engine
-from .models import Base
+from routers import profiles, users, articles
+from database import engine
+from models import Base
 
 
 Base.metadata.create_all(bind=engine)

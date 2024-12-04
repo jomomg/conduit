@@ -1,5 +1,5 @@
-from ..models import User, Profile, Article, Tag, Comment
-from ..utils import slugify_title, generate_b64_uuid
+from models import User, Profile, Article, Tag, Comment
+from utils import slugify_title, generate_b64_uuid
 
 
 def test_create_user(db_session, test_user):

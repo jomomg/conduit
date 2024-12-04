@@ -3,9 +3,9 @@ from functools import wraps
 from fastapi import APIRouter, Body, Depends, HTTPException, status
 from sqlalchemy import select, desc
 from sqlalchemy.orm import Session
-from ..dependencies import get_db, get_current_active_user, user_auth_optional
-from ..models import Article, User, Tag, Comment, Profile, profile_follows
-from ..schemas.articles import (
+from dependencies import get_db, get_current_active_user, user_auth_optional
+from models import Article, User, Tag, Comment, Profile, profile_follows
+from schemas.articles import (
     ArticleCreate,
     ArticleOut,
     ArticleUpdate,

@@ -6,9 +6,9 @@ from typing import Any
 from fastapi import Response
 from fastapi.testclient import TestClient
 
-from ..models import User, Profile, Article, Tag, Comment
-from ..schemas import articles
-from ..dependencies import decode_token
+from models import User, Profile, Article, Tag, Comment
+from schemas import articles
+from dependencies import decode_token
 
 from .conftest import client
 

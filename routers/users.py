@@ -2,9 +2,9 @@ from typing import Annotated, Literal
 from fastapi import APIRouter, Body, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from passlib.context import CryptContext
-from ..dependencies import get_db, get_current_active_user, create_access_token
-from ..models import User, Profile
-from ..schemas.users import (
+from dependencies import get_db, get_current_active_user, create_access_token
+from models import User, Profile
+from schemas.users import (
     UserRegisterOut,
     UserLogin,
     UserRegister,
