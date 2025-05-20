@@ -39,27 +39,25 @@ conduit/
 
 1. Clone the repository:
 ```bash
-git clone <repository-url>
+git clone https://github.com/jomomg/conduit
 cd conduit
 ```
 
-2. Create and activate a virtual environment:
+2. Install dependencies:
 ```bash
-python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
+# Install pipenv if you haven't already
+pip install pipenv
+
+# Install project dependencies
+pipenv install
 ```
 
-3. Install dependencies:
-```bash
-pip install -r requirements.txt
-```
-
-4. Set up the database:
+3. Set up the database:
 ```bash
 alembic upgrade head
 ```
 
-5. Run the application:
+4. Run the application:
 ```bash
 uvicorn main:app --reload
 ```
